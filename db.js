@@ -1,3 +1,4 @@
+require("dotenv").config()
 import mysql from 'promise-mysql';
 
 let pool = mysql.createPool({

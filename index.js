@@ -52,6 +52,7 @@ app.get('/api/next', async (req, res) => {
 		})
 	} catch(e) {
 		res.status(500).send({success: false})
+		console.error(e)
 	}
 });
 
