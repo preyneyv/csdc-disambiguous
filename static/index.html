@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<title>Resolve Ambiguous</title>
+	<script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"
+		integrity="sha256-3edrmyuQ0w65f8gfBsqowzjJe2iM6n0nKciPUp8y+7E="
+		crossorigin="anonymous"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.18.0/axios.min.js"
+		integrity="sha256-mpnrJ5DpEZZkwkE1ZgkEQQJW/46CSEh/STrZKOB/qoM="
+		crossorigin="anonymous"></script>
+	<style>
+		body {
+			padding: 0;
+			margin: 0;
+			color: white;
+			font-family: monospace;
+			font-size: 32px;
+			background: #136a8a;
+			background: -webkit-linear-gradient(to right, #267871, #136a8a);
+			background: linear-gradient(to right, #267871, #136a8a);
+		}
+		#container {
+			width: 100vw;
+			height: 100vh;
+			display: flex;
+			flex-wrap: wrap;
+		}
+		#image-container {
+			flex: 1 0 100vw;
+			position: relative;
+			height: calc(100vh - 192px);
+		}
+		#main-image {
+			top: 0;
+			left: 0;
+			right: 0;
+			bottom: 0;
+			margin: auto;
+			position: absolute;
+		}
+		#options {
+			flex: 1 0 100vw;
+			background: rgba(0,0,0,0.1);
+			display: flex;
+			transition: 200ms opacity;
+		}
+		#options.disabled {
+			opacity: 0.5;
+			pointer-events: none;
+		}
+		#options .option {
+			flex: 1 1 100vw;
+			display: block;
+			position: relative;
+			height: 96px;
+			cursor: pointer;
+			cursor: hand;
+			transition: 200ms background,
+						200ms opacity;
+			-webkit-touch-callout: none; /* iOS Safari */
+			-webkit-user-select: none; /* Safari */
+			 -khtml-user-select: none; /* Konqueror HTML */
+			   -moz-user-select: none; /* Firefox */
+				-ms-user-select: none; /* Internet Explorer/Edge */
+					user-select: none; /* Non-prefixed version, currently
+										  supported by Chrome and Opera */
+		}
+		#options .option:nth-child(2) {	background: rgba(0,0,0,0.04); }
+		/*#options .option:nth-child(3) {	background: rgba(0,0,0,0.08); }*/
+
+		#options .option p {
+			position: absolute;
+			width: 100%;
+			margin: 0;
+			padding: 0 32px;
+			text-align: center;
+			box-sizing: border-box;
+			top: 50%;
+			transform: translateY(-50%);
+		}
+		#options .option:hover,
+		#options .option.hover {
+			background: rgba(0,0,0,0.1);
+			border: none;
+		}
+		#options:hover .option:not(:hover),
+		#options.hover .option:not(.hover) {
+			filter: blur(2px);
+			background: transparent;
+			opacity: 0.5;
+		}
+
+		#new-label {
+			flex: 1 0 100vw;
+			font: inherit;
+			box-sizing: border-box;
+			padding: 24px;
+			height: 96px;
+			color: white;
+			outline: none;
+			background: rgba(0,0,0,0.4);
+			border: 0;
+			transition: 200ms opacity;
+		}
+		#new-label:disabled {
+			opacity: 0.5;
+		}
+		::placeholder {
+			color: white;
+			opacity: 0.5;
+		}
+
+		#help-button {
+			position: absolute;
+			width: 48px;
+			height: 48px;
+			cursor: pointer;
+			z-index: 300;
+			text-align: center;
+			line-height: 48px;
+			top: 8px;
+			left: 8px;
+			transition: 200ms background;
+			-webkit-touch-callout: none; /* iOS Safari */
+			-webkit-user-select: none; /* Safari */
+			 -khtml-user-select: none; /* Konqueror HTML */
+			   -moz-user-select: none; /* Firefox */
+				-ms-user-select: none; /* Internet Explorer/Edge */
+					user-select: none; /* Non-prefixed version, currently
+										  supported by Chrome and Opera */
+		}
+		#help-container.show #help-button {
+			background: rgba(0,0,0,0.3);
+		}
+		#help-content {
+			position: absolute;
+			left: 8px;
+			top: 56px;
+			font-size: 0.8em;
+			overflow: hidden;
+			padding: 12px;
+			transition: 200ms padding, 200ms opacity;
+			background: rgba(0,0,0,0.3);
+			background-attachment: fixed;
+			z-index: 300;
+		}
+		#help-content td:first-child {
+			padding-right: 16px;
+		}
+		#help-container:not(.show) #help-content {
+			opacity: 0;
+			pointer-events: none;
+			padding-top: 36px;
+		}
+	</style>
+</head>
+<body>
+	<div id="help-container">
+		<div id="help-button">?</div>
+		<div id="help-content">
+			<table>
+				<tr>
+					<td>1</td>
+					<td>Select label 1</td>
+				</tr>
+				<tr>
+					<td>2</td>
+					<td>Select label 2</td>
+				</tr>
+				<tr>
+					<td>3</td>
+					<td>Select label 3</td>
+				</tr>
+				<tr>
+					<td>Tab</td>
+					<td>Toggle label field focus</td>
+				</tr>
+				<tr>
+					<td>Enter</td>
+					<td>Submit new label</td>
+				</tr>
+			</table>
+		</div>
+	</div>
+	<div id="container">
+		<div id="image-container">
+			<img id="main-image">
+		</div>
+		<div class="disabled" id="options">
+			<div class="option" id="option-1">
+				<p></p>
+			</div>
+			<div class="option" id="option-2">
+				<p></p>
+			</div>
+			<div class="option" id="option-3">
+				<p></p>
+			</div>
+		</div>
+		<input type="text" disabled placeholder="new label" id="new-label">
+	</div>
+</body>
+<script>
+	// if(!confirm("Warning: There is NO undo!")) {
+	// 	$("body").empty()
+	// }
+
+	$("#help-button").on('click', () => {
+		$("#help-container").toggleClass('show')
+	});
+
+	$("body").on('keydown', e => {
+		// keyboard shortcuts
+		switch (e.key) {
+			case "1":
+				e.preventDefault();
+					selectOption(0, true)
+				break;
+			case "2":
+				e.preventDefault();
+					selectOption(1, true)
+				break;
+			case "3":
+				e.preventDefault();
+					selectOption(2, true)
+				break;
+			case "Escape":
+				e.preventDefault();
+				$("#help-container").removeClass('show');
+				$("#options, .option").removeClass('hover')
+				selected = undefined
+				break
+			case "Tab":
+				e.preventDefault();
+				$("#new-label").focus()
+		}
+	})
+
+	$("#new-label").on('keydown', e => {
+		e.stopPropagation();
+
+		if (e.key == "Tab") {
+			e.preventDefault();
+			$("#new-label").blur();
+			return;
+		}
+		if (e.key == "Enter") {
+			// submit label
+			e.preventDefault();
+			submitLabel($("#new-label").val())
+			$("#new-label").val("").blur();
+			return;
+		}
+	})
+
+	$(".option").on('click', function() { selectOption($(this).index(), false) })
+
+	let currentImage = {}
+	let selected = undefined
+	// let labels = ["label 1", "label 2", "label 3"]
+	let disabled = true
+	function selectOption(number, keypress) {
+		if (disabled) return
+		let label = currentImage.labels[number]
+		if (keypress) {
+			// need double press
+			if (number == selected) {
+				$(".option").eq(number).removeClass('hover')
+				$("#options").removeClass('hover')
+				selected = undefined
+				if (label != undefined) {
+					submitLabel(label)
+				}
+			} else {
+				selected = number
+				$(".option.hover").removeClass('hover')
+				$(".option").eq(number).addClass('hover')
+				$("#options").addClass('hover')
+			}
+		} else {
+			submitLabel(label)
+		}
+	}
+	function submitLabel(label) {
+		if (disabled) {return}
+		// disable everything
+		disabled = true
+		$("#options").addClass("disabled")
+		$("#new-label").prop('disabled', true)
+		axios.post('/api/resolve/?'+Date.now(), {
+			text: label,
+			patch_id: currentImage.patch_id
+		})
+		.then(r => r.data)
+		.then(r => {
+			if (!r.success) {
+				errorOccured()
+			}
+		})
+		.catch(e => errorOccured(e))
+
+		.then(loadNext)
+	}
+	function loadNext() {
+		return axios.get('/api/next/?'+Date.now())
+		.then(r => r.data)
+		.then(r => {
+			if (r.success) {
+				currentImage = r.image
+			} else {
+				if (r.error == "NO_MORE_IMAGES") {
+					alert("No more ambiguous images!")
+					$("body").html("No more ambiguous images yet! Try again later...")
+					throw new Error("No more ambiguous images to resolve!")
+				} else {
+					errorOccured()
+				}
+			}
+		})
+		.then(showImage)
+
+		.catch(error => errorOccured(error))
+	}
+	function errorOccured(error) {
+		error = error || "An unexpected error occured!"
+		alert("An unexpected error occured. Please reload the page and see if that helps.")
+		$("body").empty().css("height", "100vh")
+		throw new Error(error)
+	}
+	function showImage() {
+		$("#main-image").off('load')
+		$("#main-image").attr('src', "/patches/"+currentImage.path)
+		$("#main-image").on('load', () => {
+			// re-enable everything
+			disabled = false;
+			$("#options").removeClass("disabled")
+			$("#new-label").prop('disabled', false)
+		})
+
+		let $options = $('.option')
+		$options.show()
+		currentImage.labels.forEach((label, i) => {
+			$options.eq(i).find('p').text(label)
+		})
+		if (currentImage.labels.length == 2) {
+			$options.eq(2).hide()
+		}
+	}
+
+	// Load the first image
+	loadNext()
+</script>
+</html>
