@@ -341,7 +341,7 @@
 		let $options = $('.option')
 		$options.show()
 		currentImage.labels.forEach((label, i) => {
-			$options.eq(i).find('p').text(label)
+			$options.eq(i).find('p').text(label.replace(/ /g, "·"))
 		})
 		if (currentImage.labels.length == 2) {
 			$options.eq(2).hide()
